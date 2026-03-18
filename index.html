@@ -25,6 +25,9 @@ img.ch{width:100%;border-radius:6px;margin:6px 0}
 .sb{background:#1a1a2e;border-radius:6px;padding:10px;margin:8px 0;font-size:12px}
 .sr{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffffff11}
 .sr:last-child{border:none}
+.tg{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.tg-btn{background:#1a1a2e;border:1px solid #333;color:#aaa;padding:6px 10px;border-radius:16px;font-size:12px;cursor:pointer}
+.tg-on{background:#26a69a33;border-color:#26a69a;color:#26a69a}
 </style></head><body><div class="c">
 <h1>Trade Labeler</h1>
 <div id="st" style="font-size:11px;color:#888"></div>
@@ -44,8 +47,10 @@ document.getElementById('ct').textContent=(I+1)+' / '+n;
 const ul=L[I];let lh='',rh='';
 if(ul){
 const cs={trade:'#26a69a',wait:'#ffd93d',skip:'#ef5350'};
-lh='<div class="lb" style="background:'+cs[ul.l]+'22;border:1px solid '+cs[ul.l]+';color:'+cs[ul.l]+'">'+ul.l.toUpperCase()+'</div>';
-if(ul.r)lh+=' <span style="color:#888;font-size:11px">'+ul.r+'</span>';
+const confLabels={low:'Low Conf',med:'Med Conf',high:'High Conf'};
+const confText=ul.conf?' ('+confLabels[ul.conf]+')':'';
+lh='<div class="lb" style="background:'+cs[ul.l]+'22;border:1px solid '+cs[ul.l]+';color:'+cs[ul.l]+'">'+ul.l.toUpperCase()+confText+'</div>';
+if(ul.r)lh+='<div style="color:#888;font-size:11px;margin-top:2px">'+ul.r+'</div>';
 if(t.won===1)rh='<div class="rw">'+t.wt+'</div>';
 else if(t.won===0)rh='<div class="rl">'+t.wt+'</div>';
 }
@@ -60,10 +65,36 @@ document.getElementById('tc').innerHTML=`<div class="cd">
 <div class="ii"><div class="il">Pattern</div><div class="iv">${t.pattern}</div></div>
 <div class="ii"><div class="il">MACD</div><div class="iv">${t.macd}</div></div>
 </div>${lh}${rh}</div>
-${!ul?`<input type="text" class="ri" id="rn" placeholder="Why? (optional)">
-<div class="ax"><button class="bt b1" onclick="lb('trade')">TRADE</button><button class="bt b2" onclick="lb('wait')">WAIT</button><button class="bt b3" onclick="lb('skip')">SKIP</button></div>`:''}`;
+${!ul?`
+<div class="ax"><button class="bt b1" onclick="showTrade()">TRADE</button><button class="bt b2" onclick="showWait()">WAIT</button><button class="bt b3" onclick="showSkip()">SKIP</button></div>
+<div id="trade-opts" style="display:none">
+<div style="font-size:12px;color:#888;margin:6px 0">Confidence:</div>
+<div class="ax"><button class="bt" style="background:#1b5e20;color:#66bb6a" onclick="lb('trade','low')">1 Low</button><button class="bt" style="background:#26a69a;color:white" onclick="lb('trade','med')">2 Med</button><button class="bt" style="background:#00695c;color:white" onclick="lb('trade','high')">3 High</button></div>
+<div style="font-size:11px;color:#666;margin:4px 0">Why take it? (tap any)</div>
+<div class="tg" id="trade-tags"></div>
+</div>
+<div id="skip-opts" style="display:none">
+<div style="font-size:11px;color:#666;margin:4px 0">Why skip? (tap any)</div>
+<div class="tg" id="skip-tags"></div>
+</div>
+<div id="wait-opts" style="display:none">
+<div style="font-size:11px;color:#666;margin:4px 0">Why wait? (tap any)</div>
+<div class="tg" id="wait-tags"></div>
+</div>
+<input type="text" class="ri" id="rn" placeholder="Additional notes (optional)">
+`:''}`;
+if(!ul){
+const skipReasons=['Not enough time','MACD reconverging','Momentum too extended','Too far from strike','Breaking wrong direction','Weak signal','Too expensive','Deadzone'];
+const tradeReasons=['Strong momentum','Good strike distance','Plenty of time','Clean crossover','Price accelerating','High edge'];
+const waitReasons=['Signal developing','Want to see momentum hold','Right idea wrong timing'];
+function makeTags(id,reasons){const el=document.getElementById(id);if(!el)return;el.innerHTML=reasons.map(r=>`<button class="tg-btn" onclick="this.classList.toggle('tg-on')">${r}</button>`).join('');}
+makeTags('skip-tags',skipReasons);makeTags('trade-tags',tradeReasons);makeTags('wait-tags',waitReasons);
+}
 US();}
-function lb(c){const r=document.getElementById('rn');L[I]={l:c,r:r?r.value:''};for(let i=I+1;i<T.length;i++){if(!L[i]){I=i;R();return;}}R();}
+function showTrade(){document.getElementById('trade-opts').style.display='block';document.getElementById('skip-opts').style.display='none';document.getElementById('wait-opts').style.display='none';}
+function showSkip(){document.getElementById('skip-opts').style.display='block';document.getElementById('trade-opts').style.display='none';document.getElementById('wait-opts').style.display='none';}
+function showWait(){document.getElementById('wait-opts').style.display='block';document.getElementById('trade-opts').style.display='none';document.getElementById('skip-opts').style.display='none';}
+function lb(c,conf){const tags=document.querySelectorAll((c==='trade'?'#trade-tags':c==='skip'?'#skip-tags':'#wait-tags')+' .tg-on');const reasons=[...tags].map(t=>t.textContent);const note=document.getElementById('rn');if(note&&note.value)reasons.push(note.value);const r=reasons.join(', ');L[I]={l:c,r:r,conf:conf||''};for(let i=I+1;i<T.length;i++){if(!L[i]){I=i;R();return;}}R();}
 function go(d){I=Math.max(0,Math.min(T.length-1,I+d));R();}
 function US(){const ks=Object.keys(L);if(ks.length<2){document.getElementById('sb').style.display='none';return;}
 document.getElementById('sb').style.display='block';
